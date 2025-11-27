@@ -441,8 +441,8 @@ function App() {
 
         <div className="grid md:grid-cols-2 gap-6">
           {/* Input */}
-          <div className="bg-slate-800 rounded-lg p-6 border border-slate-700">
-            <div className="flex items-center justify-between mb-3">
+          <div className="bg-slate-800 rounded-lg p-6 border border-slate-700 flex flex-col">
+            <div className="flex items-center justify-between mb-3 shrink-0">
               <h2 className="text-xl font-semibold">Your Code</h2>
               <div className="flex gap-2">
                 <button
@@ -476,9 +476,9 @@ function App() {
               onChange={(e) => setCode(e.target.value)}
               placeholder="Paste your code here..."
               maxLength={10000}
-              className="w-full h-96 bg-slate-900 rounded p-4 font-mono text-sm border border-slate-600 focus:border-blue-500 focus:outline-none resize-none"
+              className="w-full h-96 bg-slate-900 rounded p-4 font-mono text-sm border border-slate-600 focus:border-blue-500 focus:outline-none resize-none shrink-0"
             />
-            <div className="mt-2 h-5 text-xs text-slate-400 text-right">
+            <div className="mt-2 h-5 text-xs text-slate-400 text-right shrink-0">
               {code.length > 0 ? (
                 <span className={code.length > 9000 ? "text-yellow-400" : code.length === 10000 ? "text-red-400" : ""}>
                   {code.length.toLocaleString()} / 10,000 characters
@@ -490,7 +490,7 @@ function App() {
             <button
               onClick={handleReview}
               disabled={loading || !code.trim() || !isOnline}
-              className="mt-4 w-full bg-blue-600 hover:bg-blue-700 disabled:bg-slate-700 disabled:cursor-not-allowed px-6 py-3 rounded-lg font-semibold transition flex items-center justify-center gap-2"
+              className="mt-4 w-full bg-blue-600 hover:bg-blue-700 disabled:bg-slate-700 disabled:cursor-not-allowed px-6 py-3 rounded-lg font-semibold transition flex items-center justify-center gap-2 shrink-0"
               aria-label={loading ? "Reviewing code" : "Review code"}
             >
               {loading ? (
@@ -507,8 +507,8 @@ function App() {
           </div>
 
           {/* Output */}
-          <div className="bg-slate-800 rounded-lg p-6 border border-slate-700">
-            <div className="flex items-center justify-between mb-3">
+          <div className="bg-slate-800 rounded-lg p-6 border border-slate-700 flex flex-col">
+            <div className="flex items-center justify-between mb-3 shrink-0">
               <h2 className="text-xl font-semibold">AI Review</h2>
               <div className="flex justify-end">
                 <button
@@ -531,8 +531,9 @@ function App() {
               </div>
             </div>
 
-            <div ref={reviewContainerRef} className="h-96 overflow-y-auto bg-slate-900 rounded p-4 border border-slate-600">
-              {!isOnline && (
+            <div className="flex flex-col" style={{ height: 'calc(24rem + 1.25rem + 3.5rem)' }}>
+              <div ref={reviewContainerRef} className="h-96 overflow-y-auto bg-slate-900 rounded p-4 border border-slate-600 mb-4 shrink-0">
+                {!isOnline && (
                 <div className="text-yellow-400 p-4 bg-yellow-950 rounded border border-yellow-800 flex items-start gap-3 mb-3">
                   <span className="text-xl">📡</span>
                   <div className="flex-1">
@@ -581,31 +582,40 @@ function App() {
                   <p className="text-slate-400 text-sm">Analyzing your code...</p>
                 </div>
               )}
-              {review && (
-                <div ref={reviewContainerRef} className="prose prose-invert prose-sm max-w-none">
-                  <ReactMarkdown
-                    components={{
+                {review && (
+                 <div ref={reviewContainerRef} className="markdown-content text-slate-300 leading-relaxed pt-2">
+                    <ReactMarkdown
+                      remarkPlugins={[]}
+                      components={{
                       // eslint-disable-next-line @typescript-eslint/no-explicit-any
                       code: ({ className, children, ...props }: any) => {
                         const match = /language-(\w+)/.exec(className || '');
                         const isInline = !match;
                         return !isInline ? (
-                          <pre className="bg-slate-800 rounded p-3 overflow-x-auto my-2 border border-slate-700">
-                            <code className={className} {...props}>
-                              {children}
-                            </code>
-                          </pre>
+                          <div className="my-2">
+                            <pre className="bg-slate-900/80 rounded-md p-4 overflow-x-auto border border-slate-700/50 text-sm leading-relaxed">
+                              <code className={`${className} font-mono text-slate-200`} {...props}>
+                                {children}
+                              </code>
+                            </pre>
+                          </div>
                         ) : (
-                          <code className="bg-slate-800 px-1.5 py-0.5 rounded text-sm border border-slate-700" {...props}>
+                          <code className="bg-slate-800/60 px-1.5 py-0.5 rounded text-sm border border-slate-700/50 text-blue-300 font-mono" {...props}>
                             {children}
                           </code>
                         );
                       },
+                      h2: ({ children }) => (
+                        <h2 className="text-2xl font-bold mt-6 mb-4 text-white pb-2 border-b border-slate-700/50">
+                          {children}
+                        </h2>
+                      ),
                       h3: ({ children }) => {
                         const text = typeof children === 'string' ? children : '';
                         const sectionType = sections.find(s => 
                           text.toLowerCase().includes(s.title.toLowerCase())
                         )?.type;
+                        const section = sections.find(s => s.type === sectionType);
                         
                         return (
                           <div
@@ -614,15 +624,16 @@ function App() {
                                 sectionRefs.current[sectionType] = el;
                               }
                             }}
-                            className={`scroll-mt-4 transition-all ${
-                              activeSection === sectionType 
-                                ? 'ring-2 ring-blue-500 ring-offset-2 ring-offset-slate-900 rounded p-2 -m-2 bg-blue-950/20' 
-                                : ''
-                            }`}
+                            className="scroll-mt-4"
                           >
-                            <h3 className="text-xl font-semibold mt-6 mb-3 text-blue-400 flex items-center gap-2">
-                              {sections.find(s => text.toLowerCase().includes(s.title.toLowerCase()))?.icon}
-                              {children}
+                            <h3 className="text-xl font-bold mt-6 mb-4 text-blue-400 flex items-center gap-2 pb-2 border-b border-slate-700/50">
+                              {section?.icon}
+                              <span>{children}</span>
+                              {section && section.count > 0 && (
+                                <span className="ml-auto bg-blue-600/20 text-blue-400 text-xs font-semibold px-2 py-1 rounded">
+                                  {section.count} {section.count === 1 ? 'issue' : 'issues'}
+                                </span>
+                              )}
                             </h3>
                           </div>
                         );
@@ -632,6 +643,7 @@ function App() {
                         const sectionType = sections.find(s => 
                           text.toLowerCase().includes(s.title.toLowerCase())
                         )?.type;
+                        const section = sections.find(s => s.type === sectionType);
                         
                         return (
                           <div
@@ -640,37 +652,92 @@ function App() {
                                 sectionRefs.current[sectionType] = el;
                               }
                             }}
-                            className={`scroll-mt-4 transition-all ${
-                              activeSection === sectionType 
-                                ? 'ring-2 ring-blue-500 ring-offset-2 ring-offset-slate-900 rounded p-2 -m-2 bg-blue-950/20' 
-                                : ''
-                            }`}
+                            className="scroll-mt-4"
                           >
-                            <h4 className="text-lg font-semibold mt-6 mb-3 text-blue-400 flex items-center gap-2">
-                              {sections.find(s => text.toLowerCase().includes(s.title.toLowerCase()))?.icon}
-                              {children}
+                            <h4 className="text-lg font-bold mt-6 mb-3 text-blue-400 flex items-center gap-2 pb-2 border-b border-slate-700/50">
+                              {section?.icon}
+                              <span>{children}</span>
+                              {section && section.count > 0 && (
+                                <span className="ml-auto bg-blue-600/20 text-blue-400 text-xs font-semibold px-2 py-1 rounded">
+                                  {section.count} {section.count === 1 ? 'issue' : 'issues'}
+                                </span>
+                              )}
                             </h4>
                           </div>
                         );
                       },
                       ul: ({ children }) => (
-                        <ul className="list-disc list-inside space-y-2 my-3 ml-4">
+                        <ul className="list-disc space-y-2 my-4 ml-6 text-slate-300">
                           {children}
                         </ul>
                       ),
                       ol: ({ children }) => (
-                        <ol className="list-decimal list-inside space-y-2 my-3 ml-4">
+                        <ol className="list-decimal space-y-3 my-4 ml-6 text-slate-300 marker:text-blue-400 marker:font-semibold">
                           {children}
                         </ol>
                       ),
-                      li: ({ children }) => (
-                        <li className="mb-1">{children}</li>
-                      ),
-                      p: ({ children }) => (
-                        <p className="my-2 leading-relaxed text-slate-300">{children}</p>
-                      ),
+                      li: ({ children }) => {
+                        // Extract text to check if it contains bold text (issue title)
+                        const extractText = (node: React.ReactNode): string => {
+                          if (typeof node === 'string') return node;
+                          if (typeof node === 'number') return String(node);
+                          if (Array.isArray(node)) {
+                            return node.map(extractText).join('');
+                          }
+                          if (node && typeof node === 'object' && 'props' in node) {
+                            const props = node.props as { children?: React.ReactNode };
+                            return extractText(props.children);
+                          }
+                          return '';
+                        };
+                        
+                        const text = extractText(children);
+                        const hasBoldTitle = text.includes('**') || /^\d+\.\s+\*\*/.test(text);
+                        
+                        return (
+                          <li className={`${hasBoldTitle ? 'mb-3' : 'mb-1'} leading-relaxed`}>
+                            <div className="[&>strong]:text-blue-300 [&>strong]:font-semibold [&>code]:bg-slate-800/60 [&>code]:px-1.5 [&>code]:py-0.5 [&>code]:rounded [&>code]:text-sm">
+                              {children}
+                            </div>
+                          </li>
+                        );
+                      },
+                      p: ({ children }) => {
+                        // Extract text content from children
+                        const extractText = (node: React.ReactNode): string => {
+                          if (typeof node === 'string') return node;
+                          if (typeof node === 'number') return String(node);
+                          if (Array.isArray(node)) {
+                            return node.map(extractText).join('');
+                          }
+                          if (node && typeof node === 'object' && 'props' in node) {
+                            const props = node.props as { children?: React.ReactNode };
+                            return extractText(props.children);
+                          }
+                          return '';
+                        };
+                        
+                        const text = extractText(children);
+                        const cleanedText = text.replace(/\s+/g, ' ').trim();
+                        
+                        // Remove empty paragraphs
+                        if (!cleanedText || cleanedText === '') {
+                          return null;
+                        }
+                        
+                        return (
+                          <p className="my-4 leading-relaxed text-slate-300 [&>strong]:text-blue-300 [&>strong]:font-semibold [&>code]:bg-slate-800/60 [&>code]:px-1.5 [&>code]:py-0.5 [&>code]:rounded [&>code]:text-sm">
+                            {children}
+                          </p>
+                        );
+                      },
                       strong: ({ children }) => (
                         <strong className="font-semibold text-blue-300">{children}</strong>
+                      ),
+                      blockquote: ({ children }) => (
+                        <blockquote className="border-l-4 border-blue-500/50 pl-4 my-4 italic text-slate-400">
+                          {children}
+                        </blockquote>
                       ),
                     }}
                   >
@@ -678,119 +745,102 @@ function App() {
                   </ReactMarkdown>
                 </div>
               )}
-              {!review && !loading && !error && (
-                <div className="text-slate-500 text-center h-full flex flex-col items-center justify-center">
-                  <div className="text-4xl mb-4">💡</div>
-                  <p className="text-sm font-medium mb-1">Ready to review your code?</p>
-                  <p className="text-xs">Paste your code and click "Review Code"</p>
+                {!review && !loading && !error && (
+                  <div className="text-slate-500 text-center h-full flex flex-col items-center justify-center">
+                    <div className="text-4xl mb-4">💡</div>
+                    <p className="text-sm font-medium mb-1">Ready to review your code?</p>
+                    <p className="text-xs">Paste your code and click "Review Code"</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Features Summary - Clickable navigation */}
+              {review && sections.length > 0 && (
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 pt-4 shrink-0">
+                <button
+                  onClick={() => setActiveSection("bugs")}
+                  disabled={(sections.find(s => s.type === 'bugs')?.count || 0) === 0}
+                  className={`p-3 rounded-lg border transition-all text-left relative overflow-visible ${
+                    (sections.find(s => s.type === 'bugs')?.count || 0) > 0
+                      ? "bg-slate-700/50 border-slate-600 hover:bg-slate-700 hover:border-blue-500 cursor-pointer"
+                      : "bg-slate-800/30 border-slate-700 cursor-default opacity-50"
+                  }`}
+                  title="Jump to Bugs section"
+                >
+                  {(sections.find(s => s.type === 'bugs')?.count || 0) > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full min-w-5 text-center leading-tight shadow-lg border-2 border-slate-800">
+                      {sections.find(s => s.type === 'bugs')?.count}
+                    </span>
+                  )}
+                  <div className="mb-1">
+                    <span className="text-sm font-semibold text-slate-300">Bugs</span>
+                  </div>
+                  <div className="text-xs text-slate-500">Logic errors</div>
+                </button>
+                <button
+                  onClick={() => setActiveSection("performance")}
+                  disabled={(sections.find(s => s.type === 'performance')?.count || 0) === 0}
+                  className={`p-3 rounded-lg border transition-all text-left relative overflow-visible ${
+                    (sections.find(s => s.type === 'performance')?.count || 0) > 0
+                      ? "bg-slate-700/50 border-slate-600 hover:bg-slate-700 hover:border-blue-500 cursor-pointer"
+                      : "bg-slate-800/30 border-slate-700 cursor-default opacity-50"
+                  }`}
+                  title="Jump to Performance section"
+                >
+                  {(sections.find(s => s.type === 'performance')?.count || 0) > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-yellow-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full min-w-5 text-center leading-tight shadow-lg border-2 border-slate-800">
+                      {sections.find(s => s.type === 'performance')?.count}
+                    </span>
+                  )}
+                  <div className="mb-1">
+                    <span className="text-sm font-semibold text-slate-300">Performance</span>
+                  </div>
+                  <div className="text-xs text-slate-500">Optimization</div>
+                </button>
+                <button
+                  onClick={() => setActiveSection("security")}
+                  disabled={(sections.find(s => s.type === 'security')?.count || 0) === 0}
+                  className={`p-3 rounded-lg border transition-all text-left relative overflow-visible ${
+                    (sections.find(s => s.type === 'security')?.count || 0) > 0
+                      ? "bg-slate-700/50 border-slate-600 hover:bg-slate-700 hover:border-blue-500 cursor-pointer"
+                      : "bg-slate-800/30 border-slate-700 cursor-default opacity-50"
+                  }`}
+                  title="Jump to Security section"
+                >
+                  {(sections.find(s => s.type === 'security')?.count || 0) > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-orange-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full min-w-5 text-center leading-tight shadow-lg border-2 border-slate-800">
+                      {sections.find(s => s.type === 'security')?.count}
+                    </span>
+                  )}
+                  <div className="mb-1">
+                    <span className="text-sm font-semibold text-slate-300">Security</span>
+                  </div>
+                  <div className="text-xs text-slate-500">Vulnerabilities</div>
+                </button>
+                <button
+                  onClick={() => setActiveSection("best-practices")}
+                  disabled={(sections.find(s => s.type === 'best-practices')?.count || 0) === 0}
+                  className={`p-3 rounded-lg border transition-all text-left relative overflow-visible ${
+                    (sections.find(s => s.type === 'best-practices')?.count || 0) > 0
+                      ? "bg-slate-700/50 border-slate-600 hover:bg-slate-700 hover:border-blue-500 cursor-pointer"
+                      : "bg-slate-800/30 border-slate-700 cursor-default opacity-50"
+                  }`}
+                  title="Jump to Best Practices section"
+                >
+                  {(sections.find(s => s.type === 'best-practices')?.count || 0) > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-blue-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full min-w-5 text-center leading-tight shadow-lg border-2 border-slate-800">
+                      {sections.find(s => s.type === 'best-practices')?.count}
+                    </span>
+                  )}
+                  <div className="mb-1">
+                    <span className="text-sm font-semibold text-slate-300 whitespace-nowrap">Best Practices</span>
+                  </div>
+                  <div className="text-xs text-slate-500">Code quality</div>
+                </button>
                 </div>
               )}
             </div>
           </div>
-        </div>
-
-        {/* Features Summary - Clickable navigation */}
-        <div className="mt-8 grid md:grid-cols-4 gap-4 text-sm">
-          <button
-            onClick={() => {
-              if (review) {
-                setActiveSection("bugs");
-              }
-            }}
-            disabled={!review || (sections.find(s => s.type === 'bugs')?.count || 0) === 0}
-            className={`bg-slate-800 p-4 rounded-lg border border-slate-700 relative text-left transition-all ${
-              review && (sections.find(s => s.type === 'bugs')?.count || 0) > 0
-                ? "hover:bg-slate-700 hover:border-blue-500 cursor-pointer"
-                : "cursor-default opacity-60"
-            }`}
-          >
-            <div className="text-2xl mb-2">🐛</div>
-            <div className="font-semibold flex items-center justify-between">
-              <span>Bug Detection</span>
-              {review && (sections.find(s => s.type === 'bugs')?.count || 0) > 0 && (
-                <span className="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
-                  {sections.find(s => s.type === 'bugs')?.count}
-                </span>
-              )}
-            </div>
-            <div className="text-slate-400 text-xs mt-1">
-              Identifies logic errors
-            </div>
-          </button>
-          <button
-            onClick={() => {
-              if (review) {
-                setActiveSection("performance");
-              }
-            }}
-            disabled={!review || (sections.find(s => s.type === 'performance')?.count || 0) === 0}
-            className={`bg-slate-800 p-4 rounded-lg border border-slate-700 relative text-left transition-all ${
-              review && (sections.find(s => s.type === 'performance')?.count || 0) > 0
-                ? "hover:bg-slate-700 hover:border-blue-500 cursor-pointer"
-                : "cursor-default opacity-60"
-            }`}
-          >
-            <div className="text-2xl mb-2">⚡</div>
-            <div className="font-semibold flex items-center justify-between">
-              <span>Performance</span>
-              {review && (sections.find(s => s.type === 'performance')?.count || 0) > 0 && (
-                <span className="bg-yellow-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
-                  {sections.find(s => s.type === 'performance')?.count}
-                </span>
-              )}
-            </div>
-            <div className="text-slate-400 text-xs mt-1">
-              Optimization suggestions
-            </div>
-          </button>
-          <button
-            onClick={() => {
-              if (review) {
-                setActiveSection("security");
-              }
-            }}
-            disabled={!review || (sections.find(s => s.type === 'security')?.count || 0) === 0}
-            className={`bg-slate-800 p-4 rounded-lg border border-slate-700 relative text-left transition-all ${
-              review && (sections.find(s => s.type === 'security')?.count || 0) > 0
-                ? "hover:bg-slate-700 hover:border-blue-500 cursor-pointer"
-                : "cursor-default opacity-60"
-            }`}
-          >
-            <div className="text-2xl mb-2">🔒</div>
-            <div className="font-semibold flex items-center justify-between">
-              <span>Security</span>
-              {review && (sections.find(s => s.type === 'security')?.count || 0) > 0 && (
-                <span className="bg-orange-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
-                  {sections.find(s => s.type === 'security')?.count}
-                </span>
-              )}
-            </div>
-            <div className="text-slate-400 text-xs mt-1">Vulnerability scanning</div>
-          </button>
-          <button
-            onClick={() => {
-              if (review) {
-                setActiveSection("best-practices");
-              }
-            }}
-            disabled={!review || (sections.find(s => s.type === 'best-practices')?.count || 0) === 0}
-            className={`bg-slate-800 p-4 rounded-lg border border-slate-700 relative text-left transition-all ${
-              review && (sections.find(s => s.type === 'best-practices')?.count || 0) > 0
-                ? "hover:bg-slate-700 hover:border-blue-500 cursor-pointer"
-                : "cursor-default opacity-60"
-            }`}
-          >
-            <div className="text-2xl mb-2">✨</div>
-            <div className="font-semibold flex items-center justify-between">
-              <span>Best Practices</span>
-              {review && (sections.find(s => s.type === 'best-practices')?.count || 0) > 0 && (
-                <span className="bg-blue-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
-                  {sections.find(s => s.type === 'best-practices')?.count}
-                </span>
-              )}
-            </div>
-            <div className="text-slate-400 text-xs mt-1">Code quality tips</div>
-          </button>
         </div>
       </div>
     </div>
