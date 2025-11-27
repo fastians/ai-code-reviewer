@@ -1,16 +1,102 @@
-import { useState } from "react";
-import { Copy, X } from "lucide-react";
+import { useState, useMemo } from "react";
+import { Copy, X, Bug, Zap, Shield, Sparkles } from "lucide-react";
+import ReactMarkdown from "react-markdown";
+
+type SectionType = "all" | "bugs" | "performance" | "security" | "best-practices";
+
+interface Section {
+  type: SectionType;
+  title: string;
+  content: string;
+  icon: React.ReactNode;
+  count: number;
+}
 
 function App() {
   const [code, setCode] = useState("");
   const [review, setReview] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [activeSection, setActiveSection] = useState<SectionType>("all");
+
+  // Parse review into sections
+  const sections = useMemo(() => {
+    if (!review) return [];
+
+    const sectionMap: Record<string, SectionType> = {
+      bugs: "bugs",
+      performance: "performance",
+      security: "security",
+      "best practices": "best-practices",
+    };
+
+    const parsed: Section[] = [];
+    const lines = review.split("\n");
+    let currentSection: SectionType | null = null;
+    let currentContent: string[] = [];
+
+    const getIcon = (type: SectionType) => {
+      switch (type) {
+        case "bugs":
+          return <Bug className="w-4 h-4" />;
+        case "performance":
+          return <Zap className="w-4 h-4" />;
+        case "security":
+          return <Shield className="w-4 h-4" />;
+        case "best-practices":
+          return <Sparkles className="w-4 h-4" />;
+        default:
+          return null;
+      }
+    };
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      // Check for section headers (#### Section Name)
+      const sectionMatch = line.match(/^####\s+(.+)$/i);
+      
+      if (sectionMatch) {
+        // Save previous section
+        if (currentSection && currentContent.length > 0) {
+          const content = currentContent.join("\n").trim();
+          const count = (content.match(/^\d+\./gm) || []).length;
+          parsed.push({
+            type: currentSection,
+            title: Object.keys(sectionMap).find(k => sectionMap[k] === currentSection) || "",
+            content,
+            icon: getIcon(currentSection),
+            count,
+          });
+        }
+
+        // Start new section
+        const sectionName = sectionMatch[1].toLowerCase();
+        currentSection = sectionMap[sectionName] || null;
+        currentContent = [];
+      } else if (currentSection) {
+        currentContent.push(line);
+      }
+    }
+
+    // Save last section
+    if (currentSection && currentContent.length > 0) {
+      const content = currentContent.join("\n").trim();
+      const count = (content.match(/^\d+\./gm) || []).length;
+      parsed.push({
+        type: currentSection,
+        title: Object.keys(sectionMap).find(k => sectionMap[k] === currentSection) || "",
+        content,
+        icon: getIcon(currentSection),
+        count,
+      });
+    }
+
+    return parsed;
+  }, [review]);
 
   const handleReview = async () => {
     if (!code.trim()) return;
 
-    // Client-side validation
     if (code.length > 10000) {
       setError("Code is too long. Maximum 10,000 characters allowed.");
       return;
@@ -19,12 +105,10 @@ function App() {
     setLoading(true);
     setError("");
     setReview("");
+    setActiveSection("all");
 
     try {
-      // Works in both local dev (via Vite proxy) and production (Vercel)
-      const apiUrl = import.meta.env.DEV 
-        ? "/api/review"  // Vite proxy will forward to local server
-        : "/api/review"; // Production uses Vercel serverless function
+      const apiUrl = "/api/review";
       
       const response = await fetch(apiUrl, {
         method: "POST",
@@ -47,8 +131,9 @@ function App() {
       }
 
       setReview(data.review);
-    } catch (err: any) {
-      setError(err.message || "Failed to review code");
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : "Failed to review code";
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -76,6 +161,15 @@ function App() {
     setCode("");
   };
 
+  const filteredContent = useMemo(() => {
+    if (activeSection === "all") return review;
+    
+    const section = sections.find(s => s.type === activeSection);
+    if (!section) return review;
+    
+    return `#### ${section.title}\n\n${section.content}`;
+  }, [review, sections, activeSection]);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 text-white p-8">
       <div className="max-w-6xl mx-auto">
@@ -91,7 +185,7 @@ function App() {
           <div className="bg-slate-800 rounded-lg p-6 border border-slate-700">
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-xl font-semibold">Your Code</h2>
-              <div className="flex gap-2">
+              <div className="flex gap-2 min-w-[88px] justify-end">
                 {code && (
                   <>
                     <button
@@ -137,16 +231,54 @@ function App() {
           <div className="bg-slate-800 rounded-lg p-6 border border-slate-700">
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-xl font-semibold">AI Review</h2>
-              {review && (
-                <button
-                  onClick={handleCopyReview}
-                  className="p-2 hover:bg-slate-700 rounded transition-colors"
-                  title="Copy review to clipboard"
-                >
-                  <Copy className="w-5 h-5" />
-                </button>
-              )}
+              <div className="min-w-[40px] flex justify-end">
+                {review && (
+                  <button
+                    onClick={handleCopyReview}
+                    className="p-2 hover:bg-slate-700 rounded transition-colors"
+                    title="Copy review to clipboard"
+                  >
+                    <Copy className="w-5 h-5" />
+                  </button>
+                )}
+              </div>
             </div>
+
+            {/* Section Filter Buttons */}
+            {sections.length > 0 && (
+              <div className="mb-3 flex flex-wrap gap-2">
+                <button
+                  onClick={() => setActiveSection("all")}
+                  className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                    activeSection === "all"
+                      ? "bg-blue-600 text-white"
+                      : "bg-slate-700 text-slate-300 hover:bg-slate-600"
+                  }`}
+                >
+                  All ({sections.reduce((sum, s) => sum + s.count, 0)})
+                </button>
+                {sections.map((section) => (
+                  <button
+                    key={section.type}
+                    onClick={() => setActiveSection(section.type)}
+                    className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors flex items-center gap-1.5 ${
+                      activeSection === section.type
+                        ? "bg-blue-600 text-white"
+                        : "bg-slate-700 text-slate-300 hover:bg-slate-600"
+                    }`}
+                  >
+                    {section.icon}
+                    {section.title}
+                    {section.count > 0 && (
+                      <span className="ml-1 px-1.5 py-0.5 bg-slate-800 rounded text-xs">
+                        {section.count}
+                      </span>
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
+
             <div className="h-96 overflow-y-auto bg-slate-900 rounded p-4 border border-slate-600">
               {error && (
                 <div className="text-red-400 p-4 bg-red-950 rounded">
@@ -160,9 +292,46 @@ function App() {
               )}
               {review && (
                 <div className="prose prose-invert prose-sm max-w-none">
-                  <pre className="whitespace-pre-wrap text-slate-300">
-                    {review}
-                  </pre>
+                  <ReactMarkdown
+                    components={{
+                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                      code: ({ className, children, ...props }: any) => {
+                        const match = /language-(\w+)/.exec(className || '');
+                        const isInline = !match;
+                        return !isInline ? (
+                          <pre className="bg-slate-800 rounded p-3 overflow-x-auto my-2">
+                            <code className={className} {...props}>
+                              {children}
+                            </code>
+                          </pre>
+                        ) : (
+                          <code className="bg-slate-800 px-1.5 py-0.5 rounded text-sm" {...props}>
+                            {children}
+                          </code>
+                        );
+                      },
+                      h3: ({ children }) => (
+                        <h3 className="text-xl font-semibold mt-4 mb-2 text-blue-400">{children}</h3>
+                      ),
+                      h4: ({ children }) => (
+                        <h4 className="text-lg font-semibold mt-3 mb-2 text-blue-300">{children}</h4>
+                      ),
+                      ul: ({ children }) => (
+                        <ul className="list-disc list-inside space-y-1 my-2">{children}</ul>
+                      ),
+                      li: ({ children }) => (
+                        <li className="ml-4">{children}</li>
+                      ),
+                      p: ({ children }) => (
+                        <p className="my-2 text-slate-300">{children}</p>
+                      ),
+                      strong: ({ children }) => (
+                        <strong className="font-semibold text-white">{children}</strong>
+                      ),
+                    }}
+                  >
+                    {filteredContent}
+                  </ReactMarkdown>
                 </div>
               )}
               {!review && !loading && !error && (
