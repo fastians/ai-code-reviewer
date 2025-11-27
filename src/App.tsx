@@ -430,8 +430,9 @@ function App() {
   }, [activeSection, review]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 text-white p-8">
-      <div className="max-w-6xl mx-auto">
+    <div className="h-screen flex flex-col bg-gradient-to-br from-slate-900 to-slate-800 text-white overflow-hidden relative">
+      <div className="flex-1 min-h-0 overflow-y-auto p-8">
+        <div className="max-w-6xl mx-auto">
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold mb-2">AI Code Reviewer</h1>
           <p className="text-slate-400">
@@ -842,7 +843,17 @@ function App() {
             </div>
           </div>
         </div>
+        </div>
       </div>
+      {/* GitHub Link - Bottom Right */}
+      <a
+        href="https://github.com/fastians/ai-code-reviewer"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="absolute bottom-4 right-4 text-slate-500 hover:text-blue-400 transition-colors text-xs"
+      >
+        View source on GitHub
+      </a>
     </div>
   );
 }
