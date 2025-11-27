@@ -10,40 +10,43 @@ function App() {
   const handleReview = async () => {
     if (!code.trim()) return;
 
+    // Client-side validation
+    if (code.length > 10000) {
+      setError("Code is too long. Maximum 10,000 characters allowed.");
+      return;
+    }
+
     setLoading(true);
     setError("");
     setReview("");
 
     try {
-      const response = await fetch(
-        "https://api.openai.com/v1/chat/completions",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${import.meta.env.VITE_OPENAI_KEY}`,
-          },
-          body: JSON.stringify({
-            model: "gpt-4o-mini",
-            messages: [
-              {
-                role: "system",
-                content:
-                  "You are a senior software engineer. Review the code and provide specific feedback on: bugs, performance, security, and best practices. Be concise but actionable. Format with markdown.",
-              },
-              {
-                role: "user",
-                content: `Review this code:\n\n${code}`,
-              },
-            ],
-            max_tokens: 1000,
-          }),
-        }
-      );
+      // Works in both local dev (via Vite proxy) and production (Vercel)
+      const apiUrl = import.meta.env.DEV 
+        ? "/api/review"  // Vite proxy will forward to local server
+        : "/api/review"; // Production uses Vercel serverless function
+      
+      const response = await fetch(apiUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ code }),
+      });
 
       const data = await response.json();
-      if (data.error) throw new Error(data.error.message);
-      setReview(data.choices[0].message.content);
+
+      if (!response.ok) {
+        if (response.status === 429) {
+          const resetTime = data.resetTime 
+            ? new Date(data.resetTime).toLocaleTimeString()
+            : 'later';
+          throw new Error(`Rate limit exceeded. Please try again after ${resetTime}.`);
+        }
+        throw new Error(data.error || data.message || "Failed to review code");
+      }
+
+      setReview(data.review);
     } catch (err: any) {
       setError(err.message || "Failed to review code");
     } finally {
@@ -113,8 +116,14 @@ function App() {
               value={code}
               onChange={(e) => setCode(e.target.value)}
               placeholder="Paste your code here..."
+              maxLength={10000}
               className="w-full h-96 bg-slate-900 rounded p-4 font-mono text-sm border border-slate-600 focus:border-blue-500 focus:outline-none resize-none"
             />
+            {code.length > 0 && (
+              <div className="mt-2 text-xs text-slate-400 text-right">
+                {code.length.toLocaleString()} / 10,000 characters
+              </div>
+            )}
             <button
               onClick={handleReview}
               disabled={loading || !code.trim()}

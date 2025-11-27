@@ -1,28 +1,237 @@
 # AI Code Reviewer
 
-Instant code analysis powered by GPT-4 - get professional feedback on your code in seconds.
-
+> Instant code analysis powered by GPT-4 - get professional feedback on your code in seconds.
 
 ![Screenshot](public/Screenshot.png)
 
-## The Problem
+## 📋 Table of Contents
+
+- [Overview](#overview)
+- [Features](#features)
+- [Quick Start](#quick-start)
+- [Getting Your OpenAI API Key](#getting-your-openai-api-key)
+- [Local Development](#local-development)
+- [Deployment](#deployment)
+- [Security](#security)
+- [Example](#example)
+- [Tech Stack](#tech-stack)
+- [Troubleshooting](#troubleshooting)
+
+## Overview
+
+AI Code Reviewer is a web application that provides instant, AI-powered code analysis. Simply paste your code and get professional feedback on bugs, performance, security, and best practices.
+
+### The Problem
 
 - Manual code reviews take time
 - Junior developers need instant feedback  
 - Senior developers need quick sanity checks
 - Learning proper patterns is hard without guidance
 
-## The Solution
+### The Solution
 
 AI-powered code analysis that reviews your code instantly, identifying:
-- 🐛 Bugs and logic errors
-- ⚡ Performance bottlenecks
-- 🔒 Security vulnerabilities
-- ✨ Best practice improvements
+- 🐛 **Bugs** - Logic errors and potential issues
+- ⚡ **Performance** - Optimization opportunities
+- 🔒 **Security** - Vulnerability scanning
+- ✨ **Best Practices** - Code quality improvements
+
+## Features
+
+- ⚡ **Instant Analysis** - Get feedback in 5-10 seconds
+- 🎯 **Specific Suggestions** - Actionable improvements, not generic advice
+- 🌐 **Multi-Language** - Supports JavaScript, Python, TypeScript, and more
+- 🚀 **No Signup Required** - Paste code and go
+- 🔐 **Secure** - API key protected server-side with rate limiting
+- 🤖 **Bot Protection** - Automatic detection and prevention of abuse
+
+## Quick Start
+
+### Prerequisites
+
+- Node.js 18+ installed ([Download](https://nodejs.org/))
+- OpenAI API key ([Get one here](https://platform.openai.com/api-keys))
+- npm or yarn package manager
+
+### Installation
+
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/fastians/ai-code-reviewer.git
+   cd ai-code-reviewer
+   ```
+
+2. **Install dependencies:**
+   ```bash
+   npm install
+   ```
+
+3. **Set up environment variables:**
+   ```bash
+   # Create .env file
+   echo "OPENAI_API_KEY=your_openai_api_key_here" > .env
+   ```
+   
+   > ⚠️ **Important:** Never commit `.env` to git! It's already in `.gitignore`.
+
+4. **Start the development server:**
+   ```bash
+   npm run dev
+   ```
+
+5. **Open your browser:**
+   Navigate to `http://localhost:5173`
+
+That's it! You're ready to review code. 🎉
+
+## Getting Your OpenAI API Key
+
+1. **Sign up/Login** to [OpenAI Platform](https://platform.openai.com/)
+2. **Navigate** to [API Keys](https://platform.openai.com/api-keys)
+3. **Create** a new secret key
+4. **Copy** the key (you won't see it again!)
+5. **Add** it to your `.env` file for local development, or Vercel environment variables for production
+
+> 💡 **Tip:** Start with a small amount of credits to test. OpenAI charges per API call.
+
+## Local Development
+
+### Running the App
+
+The app runs in two parts:
+
+1. **Frontend** (Vite) - `http://localhost:5173`
+2. **API Server** (Express) - `http://localhost:3001`
+
+Both start automatically with:
+```bash
+npm run dev
+```
+
+### Available Scripts
+
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Start both frontend and API server (recommended) |
+| `npm run dev:client` | Start only frontend (Vite) |
+| `npm run dev:server` | Start only API server (Express) |
+| `npm run build` | Build for production |
+| `npm run preview` | Preview production build |
+| `npm run lint` | Run ESLint |
+
+### Project Structure
+
+```
+ai-code-reviewer/
+├── api/
+│   ├── shared.js         # Shared logic (rate limiting, bot detection, OpenAI calls)
+│   └── review.ts         # Serverless function (Vercel) - uses shared.js
+├── src/
+│   ├── App.tsx           # Main React component
+│   └── main.tsx          # Entry point
+├── public/               # Static assets
+├── server.js             # Local Express server (dev only) - uses api/shared.js
+├── vercel.json          # Vercel configuration
+└── package.json         # Dependencies
+```
+
+> 💡 **Note:** The code logic is shared between `api/review.ts` (production) and `server.js` (local dev) via `api/shared.js`. This ensures consistent behavior and eliminates code duplication.
+
+## Deployment
+
+### ✅ Works on Vercel - No Next.js Required!
+
+Your Vite + React setup works perfectly on Vercel. The `api/review.ts` file automatically becomes a serverless function.
+
+### Option 1: Deploy via GitHub (Recommended)
+
+1. **Push your code to GitHub:**
+   ```bash
+   git add .
+   git commit -m "Ready for deployment"
+   git push origin main
+   ```
+
+2. **Connect to Vercel:**
+   - Go to [vercel.com](https://vercel.com) and sign in
+   - Click **"Add New Project"**
+   - Import your GitHub repository
+   - Vercel will auto-detect Vite
+
+3. **Set Environment Variable:**
+   - Go to **Project Settings** → **Environment Variables**
+   - Add `OPENAI_API_KEY` with your OpenAI API key
+   - Select all environments (Production, Preview, Development)
+   - Click **Save**
+
+4. **Deploy:**
+   - Click **"Deploy"**
+   - Wait for build to complete (~2-3 minutes)
+   - Your app is live! 🚀
+
+### Option 2: Deploy via CLI
+
+1. **Install Vercel CLI:**
+   ```bash
+   npm install -g vercel
+   ```
+
+2. **Login:**
+   ```bash
+   vercel login
+   ```
+
+3. **Deploy:**
+   ```bash
+   vercel
+   ```
+
+4. **Set Environment Variable:**
+   ```bash
+   vercel env add OPENAI_API_KEY
+   ```
+   Enter your key when prompted, select all environments.
+
+5. **Deploy to Production:**
+   ```bash
+   vercel --prod
+   ```
+
+> 📖 **Need more details?** See [DEPLOYMENT.md](./DEPLOYMENT.md) for comprehensive deployment guide.
+
+## Security
+
+### Built-in Protection
+
+✅ **API Key Protection** - Stored server-side only, never exposed to frontend  
+✅ **Rate Limiting** - Prevents abuse and excessive API usage  
+✅ **Bot Detection** - Automatic detection with stricter limits  
+✅ **Input Validation** - Maximum 10,000 characters per request  
+✅ **Error Handling** - Secure error messages without exposing sensitive data  
+
+### Rate Limits
+
+| User Type | Limit | Reset Time |
+|-----------|-------|------------|
+| Normal Users | 10 requests/hour | 1 hour |
+| Detected Bots | 5 requests/hour | 1 hour |
+| Code Length | 10,000 characters | Per request |
+
+### Bot Protection
+
+The system automatically detects bots based on:
+- User agent patterns (`curl`, `wget`, `python`, `selenium`, etc.)
+- Missing browser headers (`Accept`, `Accept-Language`)
+- Suspicious request patterns
+
+Detected bots receive stricter rate limits (50% of normal limit).
+
+> 🔒 **Security Details:** See [SECURITY.md](./SECURITY.md) for comprehensive security documentation.
 
 ## Example
 
-**Sample Code:**
+### Sample Code Input
+
 ```javascript
 const express = require("express");
 const app = express();
@@ -62,96 +271,113 @@ app.listen(port, () => {
 });
 ```
 
-**Sample Response:**
+### Sample AI Review Output
 
-### Code Review
+#### 🐛 Bugs
 
-#### Bugs
-1. **User ID Collision**: Using `Math.random()` for ID generation can lead to collisions, especially as the number of users increases. Consider using a more reliable method such as UUIDs or incremental IDs.
-  
+1. **User ID Collision**: Using `Math.random()` for ID generation can lead to collisions. Consider using UUIDs or incremental IDs.
+
 ```javascript
-const { v4: uuidv4 } = require('uuid'); // Import from uuid package
-u.id = uuidv4(); // Use UUID for unique user ID
+const { v4: uuidv4 } = require('uuid');
+u.id = uuidv4();
 ```
 
-2. **Filter Method Inefficiency**: In the `app.get('/user/:id')` route, using `filter` followed by accessing the first element is inefficient. Use `find()` instead.
-   
+2. **Filter Method Inefficiency**: Using `filter` followed by accessing the first element is inefficient. Use `find()` instead.
+
 ```javascript
 const found = users.find(u => u.id == id);
 ```
 
-#### Performance
-1. **Using an Array for Users**: As the number of users grows, searching through an array becomes inefficient. Consider using a database with proper indexing for scalable storage.
-2. **Send JSON Response**: Use `res.json()` instead of `res.send()` to automatically set the correct content type and serialize the response.
+#### ⚡ Performance
 
-```javascript
-res.json(users);
-```
+- **Array Storage**: Consider using a database for scalable storage
+- **JSON Response**: Use `res.json()` instead of `res.send()`
 
-#### Security
-1. **Input Validation/Sanitization**: User input should be validated and potentially sanitized to prevent issues such as NoSQL injection or server-side code injection. Consider using libraries like `Joi` or `express-validator` to validate the input structure.
-  
-```javascript
-const { body, validationResult } = require('express-validator');
+#### 🔒 Security
 
-app.post('/users', [
-  body('name').isString().notEmpty(),
-], (req, res) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(400).json({ errors: errors.array() });
-  }
-  // Continue with the ID generation and addition
-});
-```
+- **Input Validation**: Validate user input using libraries like `express-validator`
+- **HTTP Status Codes**: Return appropriate status codes (400, 404, etc.)
 
-2. **Use HTTP Status Codes**: Instead of sending plain text for errors, return appropriate HTTP status codes (e.g., `400` for bad requests, `404` for not found).
+#### ✨ Best Practices
 
-```javascript
-res.status(404).send('not found');
-```
-
-#### Best Practices
-1. **Consistent Error Handling**: Create a middleware for error handling. This promotes DRY principles and centralizes error responses.
-  
-2. **Environment Variable for Port Logging**: When logging the server port, format the message for clarity.
-
-```javascript
-app.listen(port, () => {
-  console.log(`Server started on http://localhost:${port}`);
-});
-```
-
-3. **Modularization**: Consider breaking out route handlers and other logic into separate modules for better maintainability.
-
-4. **Documentation**: Add comments or use JSDoc for your functions to describe their purpose, expected inputs, and outputs.
-
-By implementing these suggestions, the overall robustness, performance, and security of your code will improve significantly.
-
-## Features
-
-- **Instant Analysis** - Get feedback in 5-10 seconds
-- **Specific Suggestions** - Actionable improvements, not generic advice
-- **Multi-Language** - Supports JavaScript, Python, TypeScript, and more
-- **No Signup** - Paste code and go
-
-## What This Demonstrates
-
-✅ **AI/LLM Integration** - OpenAI API with proper error handling  
-✅ **Practical Application** - Solving real developer problems  
-✅ **Modern React** - TypeScript, hooks, async state management  
-✅ **Clean UX** - Simple, focused interface that just works  
+- **Error Handling**: Create middleware for consistent error handling
+- **Modularization**: Break out route handlers into separate modules
+- **Documentation**: Add JSDoc comments for better code documentation
 
 ## Tech Stack
 
-- **Frontend:** React 18, TypeScript, Tailwind CSS
-- **AI:** OpenAI GPT-4o-mini
-- **Build:** Vite
-- **Deploy:** Vercel
+| Category | Technology |
+|----------|-----------|
+| **Frontend** | React 19, TypeScript, Tailwind CSS |
+| **Build Tool** | Vite |
+| **Backend** | Vercel Serverless Functions |
+| **AI** | OpenAI GPT-4o-mini |
+| **Deployment** | Vercel |
+| **Icons** | Lucide React |
 
-## Quick Start
-```bash
-npm install
-echo "VITE_OPENAI_KEY=your_key" > .env
-npm run dev
-```
+## Troubleshooting
+
+### ❓ API Not Working Locally?
+
+**Problem:** Getting errors when trying to review code locally.
+
+**Solutions:**
+- ✅ Make sure both servers are running (`npm run dev`)
+- ✅ Check that `OPENAI_API_KEY` is set in `.env`
+- ✅ Verify the API server is running on port 3001
+- ✅ Check browser console for errors
+
+### ❓ Rate Limit Exceeded?
+
+**Problem:** Getting "Rate limit exceeded" error.
+
+**Solutions:**
+- ✅ Wait 1 hour for the limit to reset
+- ✅ Each IP address has its own limit
+- ✅ Bots get stricter limits automatically
+- ✅ Check if you're making too many requests
+
+### ❓ Build Fails on Vercel?
+
+**Problem:** Deployment fails with build errors.
+
+**Solutions:**
+- ✅ Check build logs in Vercel dashboard
+- ✅ Ensure all dependencies are in `package.json`
+- ✅ Verify TypeScript compiles without errors
+- ✅ Check that `OPENAI_API_KEY` is set in environment variables
+
+### ❓ Environment Variable Not Working?
+
+**Problem:** API key not found error.
+
+**Solutions:**
+- ✅ Verify `OPENAI_API_KEY` is set in Vercel environment variables
+- ✅ Make sure you selected all environments (Production, Preview, Development)
+- ✅ Redeploy after adding environment variables
+- ✅ Check variable name spelling (case-sensitive)
+
+### ❓ Still Having Issues?
+
+- 📖 Check [SECURITY.md](./SECURITY.md) for security details
+- 📖 Check [DEPLOYMENT.md](./DEPLOYMENT.md) for deployment help
+- 🐛 Open an issue on GitHub
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## License
+
+This project is open source and available under the [MIT License](LICENSE).
+
+## Acknowledgments
+
+- Built with [React](https://react.dev/)
+- Powered by [OpenAI](https://openai.com/)
+- Deployed on [Vercel](https://vercel.com/)
+- Icons by [Lucide](https://lucide.dev/)
+
+---
+
+**Made with ❤️ for developers who want instant code feedback**
