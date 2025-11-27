@@ -2,6 +2,8 @@
 
 > Instant code analysis powered by GPT-4 - get professional feedback on your code in seconds.
 
+🌐 **Live Demo:** [https://ai-code-reviewer-pro.vercel.app](https://ai-code-reviewer-pro.vercel.app)
+
 ![Screenshot](public/Screenshot.png)
 
 ## 📋 Table of Contents
@@ -20,6 +22,8 @@
 ## Overview
 
 AI Code Reviewer is a web application that provides instant, AI-powered code analysis. Simply paste your code and get professional feedback on bugs, performance, security, and best practices.
+
+**🔗 Try it now:** [https://ai-code-reviewer-pro.vercel.app](https://ai-code-reviewer-pro.vercel.app)
 
 ### The Problem
 
@@ -168,6 +172,7 @@ Your Vite + React setup works perfectly on Vercel. The `api/review.ts` file auto
    - Click **"Deploy"**
    - Wait for build to complete (~2-3 minutes)
    - Your app is live! 🚀
+   - **Production URL:** [https://ai-code-reviewer-pro.vercel.app](https://ai-code-reviewer-pro.vercel.app)
 
 ### Option 2: Deploy via CLI
 
