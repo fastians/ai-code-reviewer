@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Copy, X } from "lucide-react";
 
 function App() {
   const [code, setCode] = useState("");
@@ -50,6 +51,28 @@ function App() {
     }
   };
 
+  const handleCopyReview = async () => {
+    if (!review) return;
+    try {
+      await navigator.clipboard.writeText(review);
+    } catch (err) {
+      console.error("Failed to copy:", err);
+    }
+  };
+
+  const handleCopyCode = async () => {
+    if (!code) return;
+    try {
+      await navigator.clipboard.writeText(code);
+    } catch (err) {
+      console.error("Failed to copy:", err);
+    }
+  };
+
+  const handleClearCode = () => {
+    setCode("");
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 text-white p-8">
       <div className="max-w-6xl mx-auto">
@@ -63,7 +86,29 @@ function App() {
         <div className="grid md:grid-cols-2 gap-6">
           {/* Input */}
           <div className="bg-slate-800 rounded-lg p-6 border border-slate-700">
-            <h2 className="text-xl font-semibold mb-3">Your Code</h2>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-xl font-semibold">Your Code</h2>
+              <div className="flex gap-2">
+                {code && (
+                  <>
+                    <button
+                      onClick={handleCopyCode}
+                      className="p-2 hover:bg-slate-700 rounded transition-colors"
+                      title="Copy code"
+                    >
+                      <Copy className="w-5 h-5" />
+                    </button>
+                    <button
+                      onClick={handleClearCode}
+                      className="p-2 hover:bg-slate-700 rounded transition-colors"
+                      title="Clear code"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
             <textarea
               value={code}
               onChange={(e) => setCode(e.target.value)}
@@ -81,7 +126,18 @@ function App() {
 
           {/* Output */}
           <div className="bg-slate-800 rounded-lg p-6 border border-slate-700">
-            <h2 className="text-xl font-semibold mb-3">AI Review</h2>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-xl font-semibold">AI Review</h2>
+              {review && (
+                <button
+                  onClick={handleCopyReview}
+                  className="p-2 hover:bg-slate-700 rounded transition-colors"
+                  title="Copy review to clipboard"
+                >
+                  <Copy className="w-5 h-5" />
+                </button>
+              )}
+            </div>
             <div className="h-96 overflow-y-auto bg-slate-900 rounded p-4 border border-slate-600">
               {error && (
                 <div className="text-red-400 p-4 bg-red-950 rounded">
