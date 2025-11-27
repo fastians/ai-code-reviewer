@@ -1,8 +1,8 @@
 // Shared logic for both local development and Vercel serverless function
 
 export const RATE_LIMIT = {
-  MAX_REQUESTS: 10,
-  WINDOW_MS: 60 * 60 * 1000, // 1 hour
+  MAX_REQUESTS: 5,
+  WINDOW_MS: 24 * 60 * 60 * 1000, // 24 hours
   MAX_CODE_LENGTH: 10000,
 };
 
@@ -96,7 +96,7 @@ export async function callOpenAI(code, apiKey) {
         {
           role: 'system',
           content:
-            'You are a senior software engineer. Review the code and provide specific feedback on: bugs, performance, security, and best practices. Be concise but actionable. Format with markdown.',
+            'You are a senior software engineer. Review the provided code and provide specific feedback on: bugs, performance, security, and best practices. Be concise but actionable. Format with markdown using #### headers for each section (Bugs, Performance, Security, Best Practices). If the input is not code or contains random text, politely explain that you need actual code to review, but still provide any relevant feedback if possible. Number each issue within sections (1., 2., etc.).',
         },
         {
           role: 'user',

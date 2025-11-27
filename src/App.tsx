@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from "react";
-import { Copy, X, Bug, Zap, Shield, Sparkles, Check } from "lucide-react";
+import { Copy, X, Bug, Zap, Shield, Sparkles, Check, Clock } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 
 type SectionType = "all" | "bugs" | "performance" | "security" | "best-practices";
@@ -14,11 +14,53 @@ interface Section {
 
 const REQUEST_TIMEOUT = 60000; // 60 seconds
 
+// Rate limit countdown component
+function RateLimitCountdown({ resetTime }: { resetTime: number }) {
+  const [timeLeft, setTimeLeft] = useState<string>('');
+
+  useEffect(() => {
+    const updateCountdown = () => {
+      const now = Date.now();
+      const diff = resetTime - now;
+
+      if (diff <= 0) {
+        setTimeLeft('Limit reset! You can try again now.');
+        return;
+      }
+
+      const hours = Math.floor(diff / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+      if (hours > 0) {
+        setTimeLeft(`Resets in ${hours}h ${minutes}m`);
+      } else if (minutes > 0) {
+        setTimeLeft(`Resets in ${minutes}m ${seconds}s`);
+      } else {
+        setTimeLeft(`Resets in ${seconds}s`);
+      }
+    };
+
+    updateCountdown();
+    const interval = setInterval(updateCountdown, 1000);
+
+    return () => clearInterval(interval);
+  }, [resetTime]);
+
+  return (
+    <div className="mt-2 flex items-center gap-2 text-xs text-orange-300">
+      <Clock className="w-3 h-3" />
+      <span>{timeLeft}</span>
+    </div>
+  );
+}
+
 function App() {
   const [code, setCode] = useState("");
   const [review, setReview] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [rateLimitResetTime, setRateLimitResetTime] = useState<number | null>(null);
   const [activeSection, setActiveSection] = useState<SectionType>("all");
   const [copySuccess, setCopySuccess] = useState(false);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -61,15 +103,18 @@ function App() {
         const line = lines[i];
         if (typeof line !== 'string') continue;
         
-        // Check for section headers (#### Section Name)
-        const sectionMatch = line.match(/^####\s+(.+)$/i);
+        // Check for section headers (### Section Name or #### Section Name)
+        const sectionMatch = line.match(/^#{3,4}\s+(.+)$/i);
         
         if (sectionMatch) {
           // Save previous section
           if (currentSection && currentContent.length > 0) {
             const content = currentContent.join("\n").trim();
             if (content) {
-              const count = (content.match(/^\d+\./gm) || []).length;
+              // Count numbered items: matches lines starting with optional whitespace, then number and period
+              // Examples: "1. ", "  2. ", "1. **", etc.
+              const numberedItems = content.match(/^\s*\d+\./gm) || [];
+              const count = numberedItems.length;
               parsed.push({
                 type: currentSection,
                 title: Object.keys(sectionMap).find(k => sectionMap[k] === currentSection) || "",
@@ -93,7 +138,10 @@ function App() {
       if (currentSection && currentContent.length > 0) {
         const content = currentContent.join("\n").trim();
         if (content) {
-          const count = (content.match(/^\d+\./gm) || []).length;
+          // Count numbered items: matches lines starting with optional whitespace, then number and period
+          // Examples: "1. ", "  2. ", "1. **", etc.
+          const numberedItems = content.match(/^\s*\d+\./gm) || [];
+          const count = numberedItems.length;
           parsed.push({
             type: currentSection,
             title: Object.keys(sectionMap).find(k => sectionMap[k] === currentSection) || "",
@@ -166,6 +214,7 @@ function App() {
 
     setLoading(true);
     setError("");
+    setRateLimitResetTime(null);
     setReview("");
     setActiveSection("all");
 
@@ -234,10 +283,21 @@ function App() {
       // Check response status after parsing
       if (!response.ok) {
         if (response.status === 429) {
-          const resetTime = data?.resetTime 
-            ? new Date(data.resetTime).toLocaleTimeString()
-            : 'later';
-          throw new Error(`Rate limit exceeded. Please try again after ${resetTime}.`);
+          // Store reset time for countdown display
+          if (data?.resetTime) {
+            setRateLimitResetTime(new Date(data.resetTime).getTime());
+          }
+          // Use the message from server if available, otherwise format resetTime
+          const errorMessage = data?.message || (data?.resetTime 
+            ? `Rate limit exceeded. Please try again after ${new Date(data.resetTime).toLocaleString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                hour: 'numeric',
+                minute: '2-digit',
+                hour12: true
+              })}.`
+            : 'Rate limit exceeded. Please try again later.');
+          throw new Error(errorMessage);
         }
         if (response.status === 400) {
           throw new Error(data?.error || data?.message || "Invalid request. Please check your code.");
@@ -280,6 +340,10 @@ function App() {
       }
 
       setError(errorMessage);
+      // Clear rate limit reset time if it's not a rate limit error
+      if (!errorMessage.includes('Rate limit') && !errorMessage.includes('rate limit')) {
+        setRateLimitResetTime(null);
+      }
     } finally {
       setLoading(false);
       abortControllerRef.current = null;
@@ -346,17 +410,24 @@ function App() {
     setCode("");
     setReview("");
     setError("");
+    setRateLimitResetTime(null);
     setActiveSection("all");
   };
 
-  const filteredContent = useMemo(() => {
-    if (activeSection === "all") return review;
-    
-    const section = sections.find(s => s.type === activeSection);
-    if (!section) return review;
-    
-    return `#### ${section.title}\n\n${section.content}`;
-  }, [review, sections, activeSection]);
+  // Section refs for scrolling
+  const sectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const reviewContainerRef = useRef<HTMLDivElement | null>(null);
+
+  // Scroll to section when activeSection changes
+  useEffect(() => {
+    if (activeSection !== "all" && sectionRefs.current[activeSection]) {
+      sectionRefs.current[activeSection]?.scrollIntoView({ 
+        behavior: 'smooth', 
+        block: 'start',
+        inline: 'nearest'
+      });
+    }
+  }, [activeSection, review]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 text-white p-8">
@@ -460,46 +531,7 @@ function App() {
               </div>
             </div>
 
-            {/* Section Filter Buttons */}
-            {sections.length > 0 && (
-              <div className="mb-3 flex flex-wrap gap-2">
-                <button
-                  onClick={() => setActiveSection("all")}
-                  className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all duration-200 ${
-                    activeSection === "all"
-                      ? "bg-blue-600 text-white shadow-lg shadow-blue-600/20"
-                      : "bg-slate-700 text-slate-300 hover:bg-slate-600"
-                  }`}
-                >
-                  All ({sections.reduce((sum, s) => sum + s.count, 0)})
-                </button>
-                {sections.map((section) => (
-                  <button
-                    key={section.type}
-                    onClick={() => setActiveSection(section.type)}
-                    className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all duration-200 flex items-center gap-1.5 ${
-                      activeSection === section.type
-                        ? "bg-blue-600 text-white shadow-lg shadow-blue-600/20"
-                        : "bg-slate-700 text-slate-300 hover:bg-slate-600"
-                    }`}
-                  >
-                    {section.icon}
-                    <span className="capitalize">{section.title}</span>
-                    {section.count > 0 && (
-                      <span className={`ml-1 px-1.5 py-0.5 rounded text-xs ${
-                        activeSection === section.type
-                          ? "bg-blue-700"
-                          : "bg-slate-800"
-                      }`}>
-                        {section.count}
-                      </span>
-                    )}
-                  </button>
-                ))}
-              </div>
-            )}
-
-            <div className="h-96 overflow-y-auto bg-slate-900 rounded p-4 border border-slate-600">
+            <div ref={reviewContainerRef} className="h-96 overflow-y-auto bg-slate-900 rounded p-4 border border-slate-600">
               {!isOnline && (
                 <div className="text-yellow-400 p-4 bg-yellow-950 rounded border border-yellow-800 flex items-start gap-3 mb-3">
                   <span className="text-xl">📡</span>
@@ -510,15 +542,33 @@ function App() {
                 </div>
               )}
               {error && (
-                <div className="text-red-400 p-4 bg-red-950 rounded border border-red-800 flex items-start gap-3 mb-3">
-                  <span className="text-xl">⚠️</span>
+                <div className={`p-4 rounded border flex items-start gap-3 mb-3 ${
+                  error.includes('Rate limit') || error.includes('rate limit')
+                    ? 'text-orange-400 bg-orange-950 border-orange-800'
+                    : 'text-red-400 bg-red-950 border-red-800'
+                }`}>
+                  <span className="text-xl">
+                    {error.includes('Rate limit') || error.includes('rate limit') ? '⏰' : '⚠️'}
+                  </span>
                   <div className="flex-1">
-                    <p className="font-semibold mb-1">Error</p>
+                    <p className="font-semibold mb-1">
+                      {error.includes('Rate limit') || error.includes('rate limit') ? 'Rate Limit Exceeded' : 'Error'}
+                    </p>
                     <p className="text-sm">{error}</p>
+                    {rateLimitResetTime && (error.includes('Rate limit') || error.includes('rate limit')) && (
+                      <RateLimitCountdown resetTime={rateLimitResetTime} />
+                    )}
                   </div>
                   <button
-                    onClick={() => setError("")}
-                    className="text-red-400 hover:text-red-300 transition-colors"
+                    onClick={() => {
+                      setError("");
+                      setRateLimitResetTime(null);
+                    }}
+                    className={`hover:opacity-70 transition-opacity ${
+                      error.includes('Rate limit') || error.includes('rate limit')
+                        ? 'text-orange-400 hover:text-orange-300'
+                        : 'text-red-400 hover:text-red-300'
+                    }`}
                     aria-label="Dismiss error"
                   >
                     <X className="w-4 h-4" />
@@ -532,7 +582,7 @@ function App() {
                 </div>
               )}
               {review && (
-                <div className="prose prose-invert prose-sm max-w-none">
+                <div ref={reviewContainerRef} className="prose prose-invert prose-sm max-w-none">
                   <ReactMarkdown
                     components={{
                       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -540,38 +590,91 @@ function App() {
                         const match = /language-(\w+)/.exec(className || '');
                         const isInline = !match;
                         return !isInline ? (
-                          <pre className="bg-slate-800 rounded p-3 overflow-x-auto my-2">
+                          <pre className="bg-slate-800 rounded p-3 overflow-x-auto my-2 border border-slate-700">
                             <code className={className} {...props}>
                               {children}
                             </code>
                           </pre>
                         ) : (
-                          <code className="bg-slate-800 px-1.5 py-0.5 rounded text-sm" {...props}>
+                          <code className="bg-slate-800 px-1.5 py-0.5 rounded text-sm border border-slate-700" {...props}>
                             {children}
                           </code>
                         );
                       },
-                      h3: ({ children }) => (
-                        <h3 className="text-xl font-semibold mt-4 mb-2 text-blue-400">{children}</h3>
-                      ),
-                      h4: ({ children }) => (
-                        <h4 className="text-lg font-semibold mt-3 mb-2 text-blue-300">{children}</h4>
-                      ),
+                      h3: ({ children }) => {
+                        const text = typeof children === 'string' ? children : '';
+                        const sectionType = sections.find(s => 
+                          text.toLowerCase().includes(s.title.toLowerCase())
+                        )?.type;
+                        
+                        return (
+                          <div
+                            ref={(el) => {
+                              if (sectionType) {
+                                sectionRefs.current[sectionType] = el;
+                              }
+                            }}
+                            className={`scroll-mt-4 transition-all ${
+                              activeSection === sectionType 
+                                ? 'ring-2 ring-blue-500 ring-offset-2 ring-offset-slate-900 rounded p-2 -m-2 bg-blue-950/20' 
+                                : ''
+                            }`}
+                          >
+                            <h3 className="text-xl font-semibold mt-6 mb-3 text-blue-400 flex items-center gap-2">
+                              {sections.find(s => text.toLowerCase().includes(s.title.toLowerCase()))?.icon}
+                              {children}
+                            </h3>
+                          </div>
+                        );
+                      },
+                      h4: ({ children }) => {
+                        const text = typeof children === 'string' ? children : '';
+                        const sectionType = sections.find(s => 
+                          text.toLowerCase().includes(s.title.toLowerCase())
+                        )?.type;
+                        
+                        return (
+                          <div
+                            ref={(el) => {
+                              if (sectionType) {
+                                sectionRefs.current[sectionType] = el;
+                              }
+                            }}
+                            className={`scroll-mt-4 transition-all ${
+                              activeSection === sectionType 
+                                ? 'ring-2 ring-blue-500 ring-offset-2 ring-offset-slate-900 rounded p-2 -m-2 bg-blue-950/20' 
+                                : ''
+                            }`}
+                          >
+                            <h4 className="text-lg font-semibold mt-6 mb-3 text-blue-400 flex items-center gap-2">
+                              {sections.find(s => text.toLowerCase().includes(s.title.toLowerCase()))?.icon}
+                              {children}
+                            </h4>
+                          </div>
+                        );
+                      },
                       ul: ({ children }) => (
-                        <ul className="list-disc list-inside space-y-1 my-2">{children}</ul>
+                        <ul className="list-disc list-inside space-y-2 my-3 ml-4">
+                          {children}
+                        </ul>
+                      ),
+                      ol: ({ children }) => (
+                        <ol className="list-decimal list-inside space-y-2 my-3 ml-4">
+                          {children}
+                        </ol>
                       ),
                       li: ({ children }) => (
-                        <li className="ml-4">{children}</li>
+                        <li className="mb-1">{children}</li>
                       ),
                       p: ({ children }) => (
-                        <p className="my-2 text-slate-300">{children}</p>
+                        <p className="my-2 leading-relaxed text-slate-300">{children}</p>
                       ),
                       strong: ({ children }) => (
-                        <strong className="font-semibold text-white">{children}</strong>
+                        <strong className="font-semibold text-blue-300">{children}</strong>
                       ),
                     }}
                   >
-                    {filteredContent}
+                    {review}
                   </ReactMarkdown>
                 </div>
               )}
@@ -586,32 +689,108 @@ function App() {
           </div>
         </div>
 
-        {/* Features */}
+        {/* Features Summary - Clickable navigation */}
         <div className="mt-8 grid md:grid-cols-4 gap-4 text-sm">
-          <div className="bg-slate-800 p-4 rounded-lg border border-slate-700">
+          <button
+            onClick={() => {
+              if (review) {
+                setActiveSection("bugs");
+              }
+            }}
+            disabled={!review || (sections.find(s => s.type === 'bugs')?.count || 0) === 0}
+            className={`bg-slate-800 p-4 rounded-lg border border-slate-700 relative text-left transition-all ${
+              review && (sections.find(s => s.type === 'bugs')?.count || 0) > 0
+                ? "hover:bg-slate-700 hover:border-blue-500 cursor-pointer"
+                : "cursor-default opacity-60"
+            }`}
+          >
             <div className="text-2xl mb-2">🐛</div>
-            <div className="font-semibold">Bug Detection</div>
-            <div className="text-slate-400 text-xs">
+            <div className="font-semibold flex items-center justify-between">
+              <span>Bug Detection</span>
+              {review && (sections.find(s => s.type === 'bugs')?.count || 0) > 0 && (
+                <span className="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                  {sections.find(s => s.type === 'bugs')?.count}
+                </span>
+              )}
+            </div>
+            <div className="text-slate-400 text-xs mt-1">
               Identifies logic errors
             </div>
-          </div>
-          <div className="bg-slate-800 p-4 rounded-lg border border-slate-700">
+          </button>
+          <button
+            onClick={() => {
+              if (review) {
+                setActiveSection("performance");
+              }
+            }}
+            disabled={!review || (sections.find(s => s.type === 'performance')?.count || 0) === 0}
+            className={`bg-slate-800 p-4 rounded-lg border border-slate-700 relative text-left transition-all ${
+              review && (sections.find(s => s.type === 'performance')?.count || 0) > 0
+                ? "hover:bg-slate-700 hover:border-blue-500 cursor-pointer"
+                : "cursor-default opacity-60"
+            }`}
+          >
             <div className="text-2xl mb-2">⚡</div>
-            <div className="font-semibold">Performance</div>
-            <div className="text-slate-400 text-xs">
+            <div className="font-semibold flex items-center justify-between">
+              <span>Performance</span>
+              {review && (sections.find(s => s.type === 'performance')?.count || 0) > 0 && (
+                <span className="bg-yellow-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                  {sections.find(s => s.type === 'performance')?.count}
+                </span>
+              )}
+            </div>
+            <div className="text-slate-400 text-xs mt-1">
               Optimization suggestions
             </div>
-          </div>
-          <div className="bg-slate-800 p-4 rounded-lg border border-slate-700">
+          </button>
+          <button
+            onClick={() => {
+              if (review) {
+                setActiveSection("security");
+              }
+            }}
+            disabled={!review || (sections.find(s => s.type === 'security')?.count || 0) === 0}
+            className={`bg-slate-800 p-4 rounded-lg border border-slate-700 relative text-left transition-all ${
+              review && (sections.find(s => s.type === 'security')?.count || 0) > 0
+                ? "hover:bg-slate-700 hover:border-blue-500 cursor-pointer"
+                : "cursor-default opacity-60"
+            }`}
+          >
             <div className="text-2xl mb-2">🔒</div>
-            <div className="font-semibold">Security</div>
-            <div className="text-slate-400 text-xs">Vulnerability scanning</div>
-          </div>
-          <div className="bg-slate-800 p-4 rounded-lg border border-slate-700">
+            <div className="font-semibold flex items-center justify-between">
+              <span>Security</span>
+              {review && (sections.find(s => s.type === 'security')?.count || 0) > 0 && (
+                <span className="bg-orange-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                  {sections.find(s => s.type === 'security')?.count}
+                </span>
+              )}
+            </div>
+            <div className="text-slate-400 text-xs mt-1">Vulnerability scanning</div>
+          </button>
+          <button
+            onClick={() => {
+              if (review) {
+                setActiveSection("best-practices");
+              }
+            }}
+            disabled={!review || (sections.find(s => s.type === 'best-practices')?.count || 0) === 0}
+            className={`bg-slate-800 p-4 rounded-lg border border-slate-700 relative text-left transition-all ${
+              review && (sections.find(s => s.type === 'best-practices')?.count || 0) > 0
+                ? "hover:bg-slate-700 hover:border-blue-500 cursor-pointer"
+                : "cursor-default opacity-60"
+            }`}
+          >
             <div className="text-2xl mb-2">✨</div>
-            <div className="font-semibold">Best Practices</div>
-            <div className="text-slate-400 text-xs">Code quality tips</div>
-          </div>
+            <div className="font-semibold flex items-center justify-between">
+              <span>Best Practices</span>
+              {review && (sections.find(s => s.type === 'best-practices')?.count || 0) > 0 && (
+                <span className="bg-blue-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                  {sections.find(s => s.type === 'best-practices')?.count}
+                </span>
+              )}
+            </div>
+            <div className="text-slate-400 text-xs mt-1">Code quality tips</div>
+          </button>
         </div>
       </div>
     </div>

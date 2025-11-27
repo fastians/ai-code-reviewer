@@ -213,8 +213,8 @@ Your Vite + React setup works perfectly on Vercel. The `api/review.ts` file auto
 
 | User Type | Limit | Reset Time |
 |-----------|-------|------------|
-| Normal Users | 10 requests/hour | 1 hour |
-| Detected Bots | 5 requests/hour | 1 hour |
+| Normal Users | 5 requests/24h | 24 hours |
+| Detected Bots | 2 requests/24h | 24 hours |
 | Code Length | 10,000 characters | Per request |
 
 ### Bot Protection
@@ -224,7 +224,7 @@ The system automatically detects bots based on:
 - Missing browser headers (`Accept`, `Accept-Language`)
 - Suspicious request patterns
 
-Detected bots receive stricter rate limits (50% of normal limit).
+Detected bots receive stricter rate limits (2 requests per 24 hours vs 5 for normal users).
 
 > 🔒 **Security Details:** See [SECURITY.md](./SECURITY.md) for comprehensive security documentation.
 
@@ -332,7 +332,7 @@ const found = users.find(u => u.id == id);
 **Problem:** Getting "Rate limit exceeded" error.
 
 **Solutions:**
-- ✅ Wait 1 hour for the limit to reset
+- ✅ Wait 24 hours for the limit to reset
 - ✅ Each IP address has its own limit
 - ✅ Bots get stricter limits automatically
 - ✅ Check if you're making too many requests

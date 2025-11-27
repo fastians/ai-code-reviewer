@@ -14,19 +14,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  // Bot detection - stricter limits for bots
+  // Bot detection - stricter limits for bots (2 requests per 24h for bots)
   const isBot = detectBot(req);
   const rateLimitKey = getRateLimitKey(req);
-  const effectiveMaxRequests = isBot ? Math.floor(RATE_LIMIT.MAX_REQUESTS / 2) : RATE_LIMIT.MAX_REQUESTS;
+  const effectiveMaxRequests = isBot ? 2 : RATE_LIMIT.MAX_REQUESTS;
   
   // Check rate limit
   const rateLimit = checkRateLimit(rateLimitKey, effectiveMaxRequests);
 
   if (!rateLimit.allowed) {
     const resetDate = new Date(rateLimit.resetTime);
+    const resetTimeFormatted = resetDate.toLocaleString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    });
     const message = isBot 
-      ? 'Bot detected. Rate limit exceeded for automated requests.'
-      : `Too many requests. Please try again after ${resetDate.toISOString()}`;
+      ? `Bot detected. Rate limit exceeded. You can make 2 requests per 24 hours. Try again after ${resetTimeFormatted}.`
+      : `Rate limit exceeded. You can make 5 requests per 24 hours. Please try again after ${resetTimeFormatted}.`;
     
     return res.status(429).json({
       error: 'Rate limit exceeded',
