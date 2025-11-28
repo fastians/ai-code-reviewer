@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import { Copy, X, Bug, Zap, Shield, Sparkles, Check, Clock } from "lucide-react";
 import ReactMarkdown from "react-markdown";
+import FloatingLines from "./components/FloatingLines";
 
 type SectionType = "all" | "bugs" | "performance" | "security" | "best-practices";
 
@@ -56,6 +57,12 @@ function RateLimitCountdown({ resetTime }: { resetTime: number }) {
 }
 
 function App() {
+  const floatingLinesConfig = useMemo(() => ({
+    enabledWaves: ["top", "middle", "bottom"] as ("top" | "middle" | "bottom")[],
+    lineCount: [6, 8, 10],
+    lineDistance: [10, 8, 6],
+    linesGradient: ["#475569", "#64748b", "#94a3b8", "#cbd5e1"],
+  }), []);
   const [code, setCode] = useState("");
   const [review, setReview] = useState("");
   const [loading, setLoading] = useState(false);
@@ -159,6 +166,16 @@ function App() {
 
     return parsed;
   }, [review]);
+
+  const sectionCounts = useMemo(
+    () => ({
+      bugs: sections.find((s) => s.type === "bugs")?.count ?? 0,
+      performance: sections.find((s) => s.type === "performance")?.count ?? 0,
+      security: sections.find((s) => s.type === "security")?.count ?? 0,
+      bestPractices: sections.find((s) => s.type === "best-practices")?.count ?? 0,
+    }),
+    [sections],
+  );
 
   // Online/offline detection
   useEffect(() => {
@@ -430,8 +447,24 @@ function App() {
   }, [activeSection, review]);
 
   return (
-    <div className="h-screen flex flex-col bg-gradient-to-br from-slate-900 to-slate-800 text-white overflow-hidden relative">
-      <div className="flex-1 min-h-0 overflow-y-auto p-8">
+    <div className="h-screen flex flex-col bg-linear-to-br from-slate-900 to-slate-800 text-white overflow-hidden relative">
+      <div className="absolute inset-0 z-0">
+        <FloatingLines 
+          enabledWaves={floatingLinesConfig.enabledWaves}
+          lineCount={floatingLinesConfig.lineCount}
+          lineDistance={floatingLinesConfig.lineDistance}
+          bendRadius={8.0}
+          bendStrength={-0.3}
+          animationSpeed={0.6}
+          interactive={true}
+          parallax={true}
+          parallaxStrength={0.15}
+          mouseDamping={0.08}
+          linesGradient={floatingLinesConfig.linesGradient}
+          mixBlendMode="screen"
+        />
+      </div>
+      <div className="flex-1 min-h-0 overflow-y-auto p-8 relative z-10">
         <div className="max-w-6xl mx-auto">
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold mb-2">AI Code Reviewer</h1>
@@ -440,11 +473,18 @@ function App() {
           </p>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-6">
+        <div className="grid md:grid-cols-2 gap-8">
           {/* Input */}
-          <div className="bg-slate-800 rounded-lg p-6 border border-slate-700 flex flex-col">
+          <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/70 to-slate-900/40 p-6 shadow-2xl shadow-black/30 backdrop-blur-xl flex flex-col">
+            <div className="absolute inset-0 pointer-events-none opacity-40">
+              <div className="h-32 w-32 rounded-full bg-blue-500/20 blur-3xl -top-10 -right-8 absolute" />
+              <div className="h-24 w-24 rounded-full bg-cyan-400/10 blur-3xl bottom-0 left-0 absolute" />
+            </div>
             <div className="flex items-center justify-between mb-3 shrink-0">
-              <h2 className="text-xl font-semibold">Your Code</h2>
+              <div>
+                <p className="text-xs uppercase tracking-[0.3em] text-slate-500">Input</p>
+                <h2 className="text-2xl font-semibold text-white">Your Code</h2>
+              </div>
               <div className="flex gap-2">
                 <button
                   onClick={handleCopyCode}
@@ -477,7 +517,7 @@ function App() {
               onChange={(e) => setCode(e.target.value)}
               placeholder="Paste your code here..."
               maxLength={10000}
-              className="w-full h-96 bg-slate-900 rounded p-4 font-mono text-sm border border-slate-600 focus:border-blue-500 focus:outline-none resize-none shrink-0"
+              className="w-full h-96 bg-slate-900/60 rounded-xl p-4 font-mono text-sm border border-white/10 focus:border-blue-400/70 focus:ring-2 focus:ring-blue-500/30 focus:outline-none resize-none shrink-0 text-slate-100 placeholder:text-slate-500 shadow-inner shadow-black/30"
             />
             <div className="mt-2 h-5 text-xs text-slate-400 text-right shrink-0">
               {code.length > 0 ? (
@@ -491,7 +531,7 @@ function App() {
             <button
               onClick={handleReview}
               disabled={loading || !code.trim() || !isOnline}
-              className="mt-4 w-full bg-blue-600 hover:bg-blue-700 disabled:bg-slate-700 disabled:cursor-not-allowed px-6 py-3 rounded-lg font-semibold transition flex items-center justify-center gap-2 shrink-0"
+              className="mt-6 w-full bg-linear-to-r from-sky-500 via-blue-500 to-indigo-500 hover:shadow-lg hover:shadow-blue-500/30 disabled:bg-slate-800/70 disabled:text-slate-400 disabled:opacity-50 disabled:shadow-none disabled:cursor-not-allowed px-6 py-3 rounded-xl font-semibold transition flex items-center justify-center gap-2 shrink-0 shadow-md shadow-blue-900/40"
               aria-label={loading ? "Reviewing code" : "Review code"}
             >
               {loading ? (
@@ -508,9 +548,16 @@ function App() {
           </div>
 
           {/* Output */}
-          <div className="bg-slate-800 rounded-lg p-6 border border-slate-700 flex flex-col">
+          <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-slate-900/70 to-slate-900/40 p-6 shadow-2xl shadow-black/30 backdrop-blur-xl flex flex-col">
+            <div className="absolute inset-0 pointer-events-none opacity-40">
+              <div className="h-32 w-32 rounded-full bg-indigo-500/20 blur-3xl -top-6 left-6 absolute" />
+              <div className="h-24 w-24 rounded-full bg-purple-400/10 blur-3xl bottom-4 right-0 absolute" />
+            </div>
             <div className="flex items-center justify-between mb-3 shrink-0">
-              <h2 className="text-xl font-semibold">AI Review</h2>
+              <div>
+                <p className="text-xs uppercase tracking-[0.3em] text-slate-500">Output</p>
+                <h2 className="text-2xl font-semibold text-white">AI Review</h2>
+              </div>
               <div className="flex justify-end">
                 <button
                   onClick={handleCopyReview}
@@ -533,7 +580,7 @@ function App() {
             </div>
 
             <div className="flex flex-col" style={{ height: 'calc(24rem + 1.25rem + 3.5rem)' }}>
-              <div ref={reviewContainerRef} className="h-96 overflow-y-auto bg-slate-900 rounded p-4 border border-slate-600 mb-4 shrink-0">
+              <div ref={reviewContainerRef} className="h-96 overflow-y-auto bg-slate-900/60 rounded-2xl p-4 border border-white/10 mb-4 shrink-0 shadow-inner shadow-black/40">
                 {!isOnline && (
                 <div className="text-yellow-400 p-4 bg-yellow-950 rounded border border-yellow-800 flex items-start gap-3 mb-3">
                   <span className="text-xl">📡</span>
@@ -756,21 +803,20 @@ function App() {
               </div>
 
               {/* Features Summary - Clickable navigation */}
-              {review && sections.length > 0 && (
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 pt-4 shrink-0">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 pt-4 shrink-0">
                 <button
                   onClick={() => setActiveSection("bugs")}
-                  disabled={(sections.find(s => s.type === 'bugs')?.count || 0) === 0}
+                  disabled={sectionCounts.bugs === 0}
                   className={`p-3 rounded-lg border transition-all text-left relative overflow-visible ${
-                    (sections.find(s => s.type === 'bugs')?.count || 0) > 0
+                    sectionCounts.bugs > 0
                       ? "bg-slate-700/50 border-slate-600 hover:bg-slate-700 hover:border-blue-500 cursor-pointer"
-                      : "bg-slate-800/30 border-slate-700 cursor-default opacity-50"
+                      : "bg-slate-800/30 border-slate-700 cursor-default opacity-60"
                   }`}
                   title="Jump to Bugs section"
                 >
-                  {(sections.find(s => s.type === 'bugs')?.count || 0) > 0 && (
+                  {sectionCounts.bugs > 0 && (
                     <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full min-w-5 text-center leading-tight shadow-lg border-2 border-slate-800">
-                      {sections.find(s => s.type === 'bugs')?.count}
+                      {sectionCounts.bugs}
                     </span>
                   )}
                   <div className="mb-1">
@@ -780,17 +826,17 @@ function App() {
                 </button>
                 <button
                   onClick={() => setActiveSection("performance")}
-                  disabled={(sections.find(s => s.type === 'performance')?.count || 0) === 0}
+                  disabled={sectionCounts.performance === 0}
                   className={`p-3 rounded-lg border transition-all text-left relative overflow-visible ${
-                    (sections.find(s => s.type === 'performance')?.count || 0) > 0
+                    sectionCounts.performance > 0
                       ? "bg-slate-700/50 border-slate-600 hover:bg-slate-700 hover:border-blue-500 cursor-pointer"
-                      : "bg-slate-800/30 border-slate-700 cursor-default opacity-50"
+                      : "bg-slate-800/30 border-slate-700 cursor-default opacity-60"
                   }`}
                   title="Jump to Performance section"
                 >
-                  {(sections.find(s => s.type === 'performance')?.count || 0) > 0 && (
+                  {sectionCounts.performance > 0 && (
                     <span className="absolute -top-1 -right-1 bg-yellow-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full min-w-5 text-center leading-tight shadow-lg border-2 border-slate-800">
-                      {sections.find(s => s.type === 'performance')?.count}
+                      {sectionCounts.performance}
                     </span>
                   )}
                   <div className="mb-1">
@@ -800,17 +846,17 @@ function App() {
                 </button>
                 <button
                   onClick={() => setActiveSection("security")}
-                  disabled={(sections.find(s => s.type === 'security')?.count || 0) === 0}
+                  disabled={sectionCounts.security === 0}
                   className={`p-3 rounded-lg border transition-all text-left relative overflow-visible ${
-                    (sections.find(s => s.type === 'security')?.count || 0) > 0
+                    sectionCounts.security > 0
                       ? "bg-slate-700/50 border-slate-600 hover:bg-slate-700 hover:border-blue-500 cursor-pointer"
-                      : "bg-slate-800/30 border-slate-700 cursor-default opacity-50"
+                      : "bg-slate-800/30 border-slate-700 cursor-default opacity-60"
                   }`}
                   title="Jump to Security section"
                 >
-                  {(sections.find(s => s.type === 'security')?.count || 0) > 0 && (
+                  {sectionCounts.security > 0 && (
                     <span className="absolute -top-1 -right-1 bg-orange-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full min-w-5 text-center leading-tight shadow-lg border-2 border-slate-800">
-                      {sections.find(s => s.type === 'security')?.count}
+                      {sectionCounts.security}
                     </span>
                   )}
                   <div className="mb-1">
@@ -820,17 +866,17 @@ function App() {
                 </button>
                 <button
                   onClick={() => setActiveSection("best-practices")}
-                  disabled={(sections.find(s => s.type === 'best-practices')?.count || 0) === 0}
+                  disabled={sectionCounts.bestPractices === 0}
                   className={`p-3 rounded-lg border transition-all text-left relative overflow-visible ${
-                    (sections.find(s => s.type === 'best-practices')?.count || 0) > 0
+                    sectionCounts.bestPractices > 0
                       ? "bg-slate-700/50 border-slate-600 hover:bg-slate-700 hover:border-blue-500 cursor-pointer"
-                      : "bg-slate-800/30 border-slate-700 cursor-default opacity-50"
+                      : "bg-slate-800/30 border-slate-700 cursor-default opacity-60"
                   }`}
                   title="Jump to Best Practices section"
                 >
-                  {(sections.find(s => s.type === 'best-practices')?.count || 0) > 0 && (
+                  {sectionCounts.bestPractices > 0 && (
                     <span className="absolute -top-1 -right-1 bg-blue-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full min-w-5 text-center leading-tight shadow-lg border-2 border-slate-800">
-                      {sections.find(s => s.type === 'best-practices')?.count}
+                      {sectionCounts.bestPractices}
                     </span>
                   )}
                   <div className="mb-1">
@@ -838,8 +884,7 @@ function App() {
                   </div>
                   <div className="text-xs text-slate-500">Code quality</div>
                 </button>
-                </div>
-              )}
+              </div>
             </div>
           </div>
         </div>
