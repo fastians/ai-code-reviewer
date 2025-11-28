@@ -803,11 +803,11 @@ function App() {
               </div>
 
               {/* Features Summary - Clickable navigation */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 pt-4 shrink-0">
+              <div className="grid grid-cols-4 gap-2 md:gap-3 pt-4 shrink-0">
                 <button
                   onClick={() => setActiveSection("bugs")}
                   disabled={sectionCounts.bugs === 0}
-                  className={`p-3 rounded-lg border transition-all text-left relative overflow-visible ${
+                  className={`p-2 md:p-3 rounded-lg border transition-all text-left relative overflow-hidden ${
                     sectionCounts.bugs > 0
                       ? "bg-slate-700/50 border-slate-600 hover:bg-slate-700 hover:border-blue-500 cursor-pointer"
                       : "bg-slate-800/30 border-slate-700 cursor-default opacity-60"
@@ -815,19 +815,19 @@ function App() {
                   title="Jump to Bugs section"
                 >
                   {sectionCounts.bugs > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full min-w-5 text-center leading-tight shadow-lg border-2 border-slate-800">
+                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full min-w-5 text-center leading-tight shadow-lg border-2 border-slate-800 z-10">
                       {sectionCounts.bugs}
                     </span>
                   )}
-                  <div className="mb-1">
-                    <span className="text-sm font-semibold text-slate-300">Bugs</span>
+                  <div className="mb-0.5 md:mb-1">
+                    <span className="text-[10px] md:text-xs font-semibold text-slate-300 block truncate">Bugs</span>
                   </div>
-                  <div className="text-xs text-slate-500">Logic errors</div>
+                  <div className="text-xs text-slate-500 hidden lg:block truncate">Logic errors</div>
                 </button>
                 <button
                   onClick={() => setActiveSection("performance")}
                   disabled={sectionCounts.performance === 0}
-                  className={`p-3 rounded-lg border transition-all text-left relative overflow-visible ${
+                  className={`p-2 md:p-3 rounded-lg border transition-all text-left relative overflow-hidden ${
                     sectionCounts.performance > 0
                       ? "bg-slate-700/50 border-slate-600 hover:bg-slate-700 hover:border-blue-500 cursor-pointer"
                       : "bg-slate-800/30 border-slate-700 cursor-default opacity-60"
@@ -835,19 +835,19 @@ function App() {
                   title="Jump to Performance section"
                 >
                   {sectionCounts.performance > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-yellow-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full min-w-5 text-center leading-tight shadow-lg border-2 border-slate-800">
+                    <span className="absolute -top-1 -right-1 bg-yellow-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full min-w-5 text-center leading-tight shadow-lg border-2 border-slate-800 z-10">
                       {sectionCounts.performance}
                     </span>
                   )}
-                  <div className="mb-1">
-                    <span className="text-sm font-semibold text-slate-300">Performance</span>
+                  <div className="mb-0.5 md:mb-1">
+                    <span className="text-[10px] md:text-xs font-semibold text-slate-300 block truncate">Performance</span>
                   </div>
-                  <div className="text-xs text-slate-500">Optimization</div>
+                  <div className="text-xs text-slate-500 hidden lg:block truncate">Optimization</div>
                 </button>
                 <button
                   onClick={() => setActiveSection("security")}
                   disabled={sectionCounts.security === 0}
-                  className={`p-3 rounded-lg border transition-all text-left relative overflow-visible ${
+                  className={`p-2 md:p-3 rounded-lg border transition-all text-left relative overflow-hidden ${
                     sectionCounts.security > 0
                       ? "bg-slate-700/50 border-slate-600 hover:bg-slate-700 hover:border-blue-500 cursor-pointer"
                       : "bg-slate-800/30 border-slate-700 cursor-default opacity-60"
@@ -855,19 +855,19 @@ function App() {
                   title="Jump to Security section"
                 >
                   {sectionCounts.security > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-orange-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full min-w-5 text-center leading-tight shadow-lg border-2 border-slate-800">
+                    <span className="absolute -top-1 -right-1 bg-orange-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full min-w-5 text-center leading-tight shadow-lg border-2 border-slate-800 z-10">
                       {sectionCounts.security}
                     </span>
                   )}
-                  <div className="mb-1">
-                    <span className="text-sm font-semibold text-slate-300">Security</span>
+                  <div className="mb-0.5 md:mb-1">
+                    <span className="text-[10px] md:text-xs font-semibold text-slate-300 block truncate">Security</span>
                   </div>
-                  <div className="text-xs text-slate-500">Vulnerabilities</div>
+                  <div className="text-xs text-slate-500 hidden lg:block truncate">Vulnerabilities</div>
                 </button>
                 <button
                   onClick={() => setActiveSection("best-practices")}
                   disabled={sectionCounts.bestPractices === 0}
-                  className={`p-3 rounded-lg border transition-all text-left relative overflow-visible ${
+                  className={`p-2 md:p-3 rounded-lg border transition-all text-left relative overflow-hidden ${
                     sectionCounts.bestPractices > 0
                       ? "bg-slate-700/50 border-slate-600 hover:bg-slate-700 hover:border-blue-500 cursor-pointer"
                       : "bg-slate-800/30 border-slate-700 cursor-default opacity-60"
@@ -875,14 +875,14 @@ function App() {
                   title="Jump to Best Practices section"
                 >
                   {sectionCounts.bestPractices > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-blue-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full min-w-5 text-center leading-tight shadow-lg border-2 border-slate-800">
+                    <span className="absolute -top-1 -right-1 bg-blue-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full min-w-5 text-center leading-tight shadow-lg border-2 border-slate-800 z-10">
                       {sectionCounts.bestPractices}
                     </span>
                   )}
-                  <div className="mb-1">
-                    <span className="text-sm font-semibold text-slate-300 whitespace-nowrap">Best Practices</span>
+                  <div className="mb-0.5 md:mb-1">
+                    <span className="text-[10px] md:text-xs font-semibold text-slate-300 block truncate">Best Practices</span>
                   </div>
-                  <div className="text-xs text-slate-500">Code quality</div>
+                  <div className="text-xs text-slate-500 hidden lg:block truncate">Code quality</div>
                 </button>
               </div>
             </div>
